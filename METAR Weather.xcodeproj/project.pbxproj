@@ -14,6 +14,9 @@
 		B142F07C2FEC648A00861130 /* METAR_WeatherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F07B2FEC648A00861130 /* METAR_WeatherTests.swift */; };
 		B142F0862FEC648A00861130 /* METAR_WeatherUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0852FEC648A00861130 /* METAR_WeatherUITests.swift */; };
 		B142F0882FEC648B00861130 /* METAR_WeatherUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0872FEC648B00861130 /* METAR_WeatherUITestsLaunchTests.swift */; };
+		B142F0952FEC727800861130 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0942FEC727800861130 /* WeatherService.swift */; };
+		B142F0972FEC72A300861130 /* WeatherViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0962FEC72A300861130 /* WeatherViewModel.swift */; };
+		B142F0992FEC79B900861130 /* MetarParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0982FEC79B900861130 /* MetarParser.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +47,9 @@
 		B142F0812FEC648A00861130 /* METAR WeatherUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "METAR WeatherUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B142F0852FEC648A00861130 /* METAR_WeatherUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = METAR_WeatherUITests.swift; sourceTree = "<group>"; };
 		B142F0872FEC648B00861130 /* METAR_WeatherUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = METAR_WeatherUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		B142F0942FEC727800861130 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		B142F0962FEC72A300861130 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherViewModel.swift; sourceTree = "<group>"; };
+		B142F0982FEC79B900861130 /* MetarParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetarParser.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +104,9 @@
 				B142F06C2FEC648800861130 /* ContentView.swift */,
 				B142F06E2FEC648A00861130 /* Assets.xcassets */,
 				B142F0702FEC648A00861130 /* Preview Content */,
+				B142F0942FEC727800861130 /* WeatherService.swift */,
+				B142F0962FEC72A300861130 /* WeatherViewModel.swift */,
+				B142F0982FEC79B900861130 /* MetarParser.swift */,
 			);
 			path = "METAR Weather";
 			sourceTree = "<group>";
@@ -258,7 +267,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				B142F06D2FEC648800861130 /* ContentView.swift in Sources */,
+				B142F0972FEC72A300861130 /* WeatherViewModel.swift in Sources */,
+				B142F0952FEC727800861130 /* WeatherService.swift in Sources */,
 				B142F06B2FEC648800861130 /* METAR_WeatherApp.swift in Sources */,
+				B142F0992FEC79B900861130 /* MetarParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

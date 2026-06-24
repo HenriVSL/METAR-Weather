@@ -294,6 +294,8 @@ struct AirfieldCardView: View {
 
 /// "METAR BRIEF / Local Weather" title bar with timestamp and refresh.
 struct TopBarView: View {
+    @ObservedObject var viewModel: WeatherViewModel
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top) {
@@ -313,8 +315,8 @@ struct TopBarView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.system(size: 14))
-                        .foregroundColor(.green)
-                    Text("14:20Z")
+                        .foregroundColor(viewModel.isRefreshing ? .yellow : .green)
+                    Text(viewModel.timeZ)
                         .font(.system(size: 14, weight: .medium, design: .monospaced))
                         .foregroundColor(.white)
                 }
@@ -326,7 +328,7 @@ struct TopBarView: View {
 
             HStack {
                 Label {
-                    Text("Updated 4 min ago")
+                    Text(viewModel.lastUpdated)
                         .font(.system(size: 13))
                         .foregroundColor(Color(white: 0.44))
                 } icon: {
@@ -337,15 +339,22 @@ struct TopBarView: View {
 
                 Spacer()
 
-                Button(action: { /* refresh action */ }) {
+                // Execute the refresh
+                Button(action: {
+                    Task { await viewModel.refreshWeather() }
+                }) {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 13, weight: .medium))
+                            // Spin icon while refreshing
+                            .rotationEffect(.degrees(viewModel.isRefreshing ? 360 : 0))
+                            .animation(viewModel.isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: viewModel.isRefreshing)
                         Text("Refresh")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundColor(.white)
                 }
+                .disabled(viewModel.isRefreshing)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 14)
@@ -356,7 +365,7 @@ struct TopBarView: View {
 // MARK: - Airfields Screen
 
 struct AirfieldsView: View {
-    let airfields = AirfieldData.samples
+    @ObservedObject var viewModel: WeatherViewModel
 
     var body: some View {
         ZStack {
@@ -364,10 +373,12 @@ struct AirfieldsView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    TopBarView()
+                    // Pass viewModel to TopBar
+                    TopBarView(viewModel: viewModel)
 
                     VStack(spacing: 12) {
-                        ForEach(airfields) { airfield in
+                        // Loop through live data
+                        ForEach(viewModel.airfields) { airfield in
                             AirfieldCardView(airfield: airfield)
                         }
                     }
@@ -382,6 +393,7 @@ struct AirfieldsView: View {
 // MARK: - Content View + Tab Bar
 
 struct ContentView: View {
+    @StateObject private var viewModel = WeatherViewModel()
     @State private var selectedTab: Int = 0
 
     init() {
@@ -390,7 +402,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            AirfieldsView()
+            AirfieldsView(viewModel: viewModel)
                 .tabItem {
                     Label("Airfields", systemImage: "mappin.circle.fill")
                 }
@@ -409,6 +421,9 @@ struct ContentView: View {
                 .tag(2)
         }
         .tint(.white)
+        .task {
+            await viewModel.refreshWeather()
+        }
     }
 
     // MARK: Placeholder screens
