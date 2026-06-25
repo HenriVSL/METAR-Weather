@@ -36,26 +36,34 @@ class WeatherViewModel: ObservableObject {
     // 3. Update refresh logic to use the dynamic array
     func refreshWeather() async {
         isRefreshing = true
-        
+
         do {
-            // Uses dynamic targetIcaos instead of a hardcoded list
-            let rawDataMap = try await service.fetchRawMetars(for: targetIcaos)
+            async let metarFetch = service.fetchRawMetars(for: targetIcaos)
+            async let airportFetch = service.fetchAirportInfo(for: targetIcaos)
+            let rawDataMap = try await metarFetch
+            let airportInfoMap = (try? await airportFetch) ?? [:]
+
             var updatedAirfields: [AirfieldData] = []
-            
             for icao in targetIcaos {
                 if let rawText = rawDataMap[icao] {
-                    let parsedData = MetarParser.parse(rawMetar: rawText, icao: icao)
+                    let info = airportInfoMap[icao]
+                    let parsedData = MetarParser.parse(
+                        rawMetar: rawText,
+                        icao: icao,
+                        locationName: info?.name ?? icao,
+                        frequencies: info?.frequencies ?? []
+                    )
                     updatedAirfields.append(parsedData)
                 }
             }
-            
+
             self.airfields = updatedAirfields
             updateTimestamps()
-            
+
         } catch {
             print("Weather fetch failed: \(error)")
         }
-        
+
         isRefreshing = false
     }
     

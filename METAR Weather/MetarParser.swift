@@ -9,32 +9,25 @@ import Foundation
 
 struct MetarParser {
     
-    static func parse(rawMetar: String, icao: String) -> AirfieldData {
+    static func parse(rawMetar: String, icao: String, locationName: String, frequencies: [AirportFrequency]) -> AirfieldData {
         let temp = extractTemperature(from: rawMetar) ?? 0
         let wind = extractWind(from: rawMetar)
         let vis = extractVisibility(from: rawMetar) ?? 9999
         let condition = determineFlightCondition(visibilityMeters: vis, rawMetar: rawMetar)
-        
-        // Match the ICAO to a human readable name if we know it
-        let locationNames = [
-            "EFHA": "Halli",
-            "EFTP": "Tampere-Pirkkala",
-            "EFJY": "Jyväskylä"
-        ]
-        let locName = locationNames[icao] ?? "Unknown Field"
-        
+
         let summary = "Wind \(wind.dir)° at \(wind.speed)kt. Visibility \(vis >= 9999 ? "9999m or more" : "\(vis)m"). Temperature \(temp)°C."
-        
+
         return AirfieldData(
             icao: icao,
-            locationName: locName,
+            locationName: locationName,
             flightCondition: condition,
             temperatureC: temp,
             windDirectionDeg: wind.dir,
             windSpeedKt: wind.speed,
             visibilityMeters: vis,
             humanSummary: summary,
-            rawMetar: rawMetar
+            rawMetar: rawMetar,
+            frequencies: frequencies
         )
     }
     

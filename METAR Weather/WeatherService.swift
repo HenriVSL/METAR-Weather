@@ -8,6 +8,11 @@ enum NetworkError: Error {
     case dataError
 }
 
+struct AirportInfo {
+    let name: String
+    let frequencies: [AirportFrequency]
+}
+
 class WeatherService {
     func fetchRawMetars(for icaos: [String]) async throws -> [String: String] {
         guard !icaos.isEmpty else { return [:] }
@@ -64,5 +69,44 @@ class WeatherService {
                 }
         
         return metarMap
+    }
+
+    func fetchAirportInfo(for icaos: [String]) async throws -> [String: AirportInfo] {
+        guard !icaos.isEmpty else { return [:] }
+
+        let idList = icaos.joined(separator: ",")
+        let urlString = "https://aviationweather.gov/api/data/airport?ids=\(idList)&format=json"
+
+        guard let url = URL(string: urlString) else { throw NetworkError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        guard let jsonArray = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] else {
+            return [:]
+        }
+
+        var result: [String: AirportInfo] = [:]
+        for entry in jsonArray {
+            guard let icao = entry["icaoId"] as? String,
+                  let rawName = entry["name"] as? String else { continue }
+
+            let name = rawName.capitalized
+
+            var freqs: [AirportFrequency] = []
+            if let freqString = entry["freqs"] as? String {
+                for part in freqString.split(separator: ";") {
+                    let components = part.split(separator: ",")
+                    if components.count == 2 {
+                        freqs.append(AirportFrequency(type: String(components[0]), freq: String(components[1])))
+                    }
+                }
+            }
+
+            result[icao] = AirportInfo(name: name, frequencies: freqs)
+        }
+        return result
     }
 }

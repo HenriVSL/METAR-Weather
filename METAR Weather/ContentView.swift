@@ -47,6 +47,12 @@ enum FlightCondition: String {
     }
 }
 
+struct AirportFrequency: Identifiable {
+    let id = UUID()
+    let type: String
+    let freq: String
+}
+
 struct AirfieldData: Identifiable {
     let id = UUID()
     let icao:             String
@@ -58,13 +64,15 @@ struct AirfieldData: Identifiable {
     let visibilityMeters: Int
     let humanSummary:     String
     let rawMetar:         String
+    let frequencies:      [AirportFrequency]
 
     // Formatted display strings
-    var displayTemp: String { "\(temperatureC)°" }
+    var displayTemp: String { "\(temperatureC)" }
     var displayWindDir: String { "\(windDirectionDeg)°" }
     var displayWindSpeed: String { String(format: "%02dkt", windSpeedKt) }
     var displayVis: String {
-        visibilityMeters >= 9999 ? "9999m" : "\(visibilityMeters)m"
+        if rawMetar.contains("CAVOK") { return "CAVOK" }
+        return visibilityMeters >= 9999 ? "9999m" : "\(visibilityMeters)m"
     }
 }
 
@@ -74,7 +82,7 @@ extension AirfieldData {
     static let samples: [AirfieldData] = [
         AirfieldData(
             icao: "EFHA",
-            locationName: "Halli",
+            locationName: "Halli Airport",
             flightCondition: .ifr,
             temperatureC: -3,
             windDirectionDeg: 220,
@@ -82,11 +90,12 @@ extension AirfieldData {
             visibilityMeters: 1200,
             humanSummary: "Wind 220° at 18kt. Visibility 1200m. Mist. " +
                 "Overcast at 400ft. Temperature -3°C, dew point -4°C. QNH 1012 hPa.",
-            rawMetar: "EFHA 141420Z 22018KT 1200 BR OVC004 M03/M04 Q1012"
+            rawMetar: "EFHA 141420Z 22018KT 1200 BR OVC004 M03/M04 Q1012",
+            frequencies: [AirportFrequency(type: "TWR", freq: "119.7"), AirportFrequency(type: "ATIS", freq: "135.5")]
         ),
         AirfieldData(
             icao: "EFTP",
-            locationName: "Tampere-Pirkkala",
+            locationName: "Tampere/Pirkkala Airport",
             flightCondition: .mvfr,
             temperatureC: 1,
             windDirectionDeg: 180,
@@ -94,11 +103,12 @@ extension AirfieldData {
             visibilityMeters: 6000,
             humanSummary: "Wind 180° at 9kt. Visibility 6000m. Broken cloud " +
                 "at 1200ft. Temperature 1°C, dew point -1°C. QNH 1014 hPa.",
-            rawMetar: "EFTP 141420Z 18009KT 6000 BKN012 01/M01 Q1014"
+            rawMetar: "EFTP 141420Z 18009KT 6000 BKN012 01/M01 Q1014",
+            frequencies: [AirportFrequency(type: "ATIS", freq: "133.55"), AirportFrequency(type: "TWR", freq: "118.7")]
         ),
         AirfieldData(
             icao: "EFJY",
-            locationName: "Jyväskylä",
+            locationName: "Jyväskylä Airport",
             flightCondition: .vfr,
             temperatureC: -1,
             windDirectionDeg: 270,
@@ -106,7 +116,8 @@ extension AirfieldData {
             visibilityMeters: 9999,
             humanSummary: "Wind 270° at 5kt. Visibility 9999m or more. " +
                 "Few clouds at 3500ft. Temperature -1°C, dew point -5°C. QNH 1015 hPa.",
-            rawMetar: "EFJY 141420Z 27005KT 9999 FEW035 M01/M05 Q1015"
+            rawMetar: "EFJY 141420Z 27005KT 9999 FEW035 M01/M05 Q1015",
+            frequencies: []
         )
     ]
 }
@@ -138,21 +149,24 @@ struct MetricColumn: View {
     let iconName:     String
     let label:        String
     let primaryValue: String
+    let primarySuffix: String?
     let secondValue:  String?
     let valueColor:   Color
 
     init(
-        iconName:     String,
-        label:        String,
-        primaryValue: String,
-        secondValue:  String? = nil,
-        valueColor:   Color   = .white
+        iconName:      String,
+        label:         String,
+        primaryValue:  String,
+        primarySuffix: String? = nil,
+        secondValue:   String? = nil,
+        valueColor:    Color   = .white
     ) {
-        self.iconName     = iconName
-        self.label        = label
-        self.primaryValue = primaryValue
-        self.secondValue  = secondValue
-        self.valueColor   = valueColor
+        self.iconName      = iconName
+        self.label         = label
+        self.primaryValue  = primaryValue
+        self.primarySuffix = primarySuffix
+        self.secondValue   = secondValue
+        self.valueColor    = valueColor
     }
 
     var body: some View {
@@ -162,11 +176,19 @@ struct MetricColumn: View {
                 .foregroundColor(Color(white: 0.52))
 
             VStack(spacing: 0) {
-                Text(primaryValue)
-                    .font(.system(size: 26, weight: .bold, design: .monospaced))
-                    .foregroundColor(valueColor)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
+                HStack(alignment: .top, spacing: 1) {
+                    Text(primaryValue)
+                        .font(.system(size: 26, weight: .bold, design: .monospaced))
+                        .foregroundColor(valueColor)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                    if let suffix = primarySuffix {
+                        Text(suffix)
+                            .font(.system(size: 18, weight: .bold, design: .monospaced))
+                            .foregroundColor(valueColor)
+                            .padding(.top, 2)
+                    }
+                }
 
                 if let second = secondValue {
                     Text(second)
@@ -202,9 +224,10 @@ struct MetricGridView: View {
     var body: some View {
         HStack(spacing: 0) {
             MetricColumn(
-                iconName:     "thermometer.medium",
-                label:        "TEMP",
-                primaryValue: airfield.displayTemp
+                iconName:      "thermometer.medium",
+                label:         "TEMP",
+                primaryValue:  airfield.displayTemp,
+                primarySuffix: "°"
             )
 
             ColumnDivider()
@@ -223,7 +246,7 @@ struct MetricGridView: View {
                 iconName:     "eye",
                 label:        "VIS",
                 primaryValue: airfield.displayVis,
-                valueColor:   airfield.flightCondition.primaryMetricColor
+                valueColor:   Color(red: 0.18, green: 0.88, blue: 0.42)
             )
         }
         .padding(.vertical, 14)
@@ -241,13 +264,28 @@ struct AirfieldCardView: View {
 
             // ── Header ──────────────────────────────────────────────────────
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(airfield.icao)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
-                    Image(systemName: "mappin.circle")
-                        .font(.system(size: 15))
-                        .foregroundColor(Color(white: 0.42))
+                HStack(alignment: .top) {
+                    HStack(spacing: 6) {
+                        Text(airfield.icao)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        Image(systemName: "mappin.circle")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color(white: 0.42))
+                    }
+
+                    Spacer()
+
+                    let validFreqs = airfield.frequencies.filter { $0.freq.contains(where: \.isNumber) }
+                    if !validFreqs.isEmpty {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            ForEach(validFreqs) { f in
+                                Text("\(f.type) \(f.freq)")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.48))
+                            }
+                        }
+                    }
                 }
 
                 Text(airfield.locationName)
@@ -300,14 +338,10 @@ struct TopBarView: View {
         VStack(spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("METAR BRIEF")
+                    Text("METAR WEATHER")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(Color(white: 0.44))
                         .kerning(2.0)
-
-                    Text("Local Weather")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
                 }
 
                 Spacer()
@@ -390,6 +424,158 @@ struct AirfieldsView: View {
     }
 }
 
+// MARK: - Settings View
+
+struct SettingsView: View {
+    @ObservedObject var viewModel: WeatherViewModel
+    @State private var inputIcao: String = ""
+    @FocusState private var fieldFocused: Bool
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 20) {
+
+                    // ── Add airport ──────────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Add airport")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("Type a 4-letter ICAO code.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.48))
+                            }
+                            Spacer()
+                            Text("ICAO")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color(white: 0.22))
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+
+                        HStack(spacing: 10) {
+                            TextField("EFHK", text: $inputIcao)
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .font(.system(size: 17, weight: .medium, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 13)
+                                .background(Color(white: 0.13))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .focused($fieldFocused)
+                                .submitLabel(.done)
+                                .onSubmit { addAirfield() }
+
+                            Button(action: addAirfield) {
+                                Text("Add")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 22)
+                                    .padding(.vertical, 13)
+                                    .background(Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                            .disabled(inputIcao.trimmingCharacters(in: .whitespaces).count != 4)
+                        }
+
+                        HStack(spacing: 5) {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(white: 0.38))
+                            Text("Examples: EFHA, EFTP, EFJY")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(white: 0.38))
+                        }
+                    }
+                    .padding(18)
+                    .background(Color(white: 0.085))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    // ── Selected airports ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Selected airports")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("Tap delete to remove from your briefing list.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.48))
+                            }
+                            Spacer()
+                            Text("\(viewModel.targetIcaos.count)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color(white: 0.22))
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        }
+
+                        VStack(spacing: 8) {
+                            ForEach(viewModel.targetIcaos, id: \.self) { icao in
+                                let airfield = viewModel.airfields.first { $0.icao == icao }
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(spacing: 8) {
+                                            Text(icao)
+                                                .font(.system(size: 17, weight: .bold))
+                                                .foregroundColor(.white)
+                                            Text("ACTIVE")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(Color(white: 0.55))
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 3)
+                                                .background(Color(white: 0.18))
+                                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                        }
+                                        if let name = airfield?.locationName {
+                                            Text(name)
+                                                .font(.system(size: 13))
+                                                .foregroundColor(Color(white: 0.48))
+                                        }
+                                    }
+                                    Spacer()
+                                    Button(action: { viewModel.removeAirfield(icao: icao) }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(Color(red: 0.85, green: 0.22, blue: 0.22))
+                                    }
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(Color(white: 0.13))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                        }
+                    }
+                    .padding(18)
+                    .background(Color(white: 0.085))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 40)
+            }
+        }
+    }
+
+    private func addAirfield() {
+        let clean = inputIcao.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.count == 4 else { return }
+        viewModel.addAirfield(icao: clean)
+        inputIcao = ""
+        fieldFocused = false
+    }
+}
+
 // MARK: - Content View + Tab Bar
 
 struct ContentView: View {
@@ -408,17 +594,11 @@ struct ContentView: View {
                 }
                 .tag(0)
 
-            alertsPlaceholder
-                .tabItem {
-                    Label("Alerts", systemImage: "bell")
-                }
-                .tag(1)
-
             settingsPlaceholder
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }
-                .tag(2)
+                .tag(1)
         }
         .tint(.white)
         .task {
@@ -443,17 +623,7 @@ struct ContentView: View {
     }
 
     private var settingsPlaceholder: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: "gearshape.2")
-                    .font(.system(size: 38))
-                    .foregroundColor(Color(white: 0.28))
-                Text("Settings")
-                    .font(.system(size: 15))
-                    .foregroundColor(Color(white: 0.35))
-            }
-        }
+        SettingsView(viewModel: viewModel)
     }
 
     // MARK: Tab bar appearance
