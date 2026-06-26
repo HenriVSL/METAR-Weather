@@ -53,6 +53,37 @@ struct AirportFrequency: Identifiable {
     let freq: String
 }
 
+struct ParsedMetar {
+    var stationId:         String        = ""
+    var observationTime:   String        = ""
+    var isAuto:            Bool          = false
+    var isCorrected:       Bool          = false
+    var wind:              ParsedWind?   = nil
+    var variableWindRange: String?       = nil
+    var isCavok:           Bool          = false
+    var visibility:        String        = ""
+    var rvr:               [String]      = []
+    var weather:           [String]      = []
+    var clouds:            [ParsedCloud] = []
+    var temperature:       String        = ""
+    var dewPoint:          String        = ""
+    var qnh:               String        = ""
+    var trend:             String        = ""
+}
+
+struct ParsedWind {
+    let direction: String
+    let speed:     String
+    let gust:      String?
+}
+
+struct ParsedCloud: Identifiable {
+    let id        = UUID()
+    let coverage:  String
+    let height:    String
+    let cloudType: String?
+}
+
 struct AirfieldData: Identifiable {
     let id = UUID()
     let icao:             String
@@ -62,7 +93,6 @@ struct AirfieldData: Identifiable {
     let windDirectionDeg: Int
     let windSpeedKt:      Int
     let visibilityMeters: Int
-    let humanSummary:     String
     let rawMetar:         String
     let frequencies:      [AirportFrequency]
 
@@ -88,8 +118,6 @@ extension AirfieldData {
             windDirectionDeg: 220,
             windSpeedKt: 18,
             visibilityMeters: 1200,
-            humanSummary: "Wind 220° at 18kt. Visibility 1200m. Mist. " +
-                "Overcast at 400ft. Temperature -3°C, dew point -4°C. QNH 1012 hPa.",
             rawMetar: "EFHA 141420Z 22018KT 1200 BR OVC004 M03/M04 Q1012",
             frequencies: [AirportFrequency(type: "TWR", freq: "119.7"), AirportFrequency(type: "ATIS", freq: "135.5")]
         ),
@@ -101,8 +129,6 @@ extension AirfieldData {
             windDirectionDeg: 180,
             windSpeedKt: 9,
             visibilityMeters: 6000,
-            humanSummary: "Wind 180° at 9kt. Visibility 6000m. Broken cloud " +
-                "at 1200ft. Temperature 1°C, dew point -1°C. QNH 1014 hPa.",
             rawMetar: "EFTP 141420Z 18009KT 6000 BKN012 01/M01 Q1014",
             frequencies: [AirportFrequency(type: "ATIS", freq: "133.55"), AirportFrequency(type: "TWR", freq: "118.7")]
         ),
@@ -114,8 +140,6 @@ extension AirfieldData {
             windDirectionDeg: 270,
             windSpeedKt: 5,
             visibilityMeters: 9999,
-            humanSummary: "Wind 270° at 5kt. Visibility 9999m or more. " +
-                "Few clouds at 3500ft. Temperature -1°C, dew point -5°C. QNH 1015 hPa.",
             rawMetar: "EFJY 141420Z 27005KT 9999 FEW035 M01/M05 Q1015",
             frequencies: []
         )
@@ -258,6 +282,7 @@ struct MetricGridView: View {
 /// Full card for a single airfield station.
 struct AirfieldCardView: View {
     let airfield: AirfieldData
+    @State private var isExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -308,23 +333,340 @@ struct AirfieldCardView: View {
                 .frame(height: 1)
                 .padding(.horizontal, 16)
 
-            // ── Text summary + raw METAR ─────────────────────────────────────
-            VStack(alignment: .leading, spacing: 5) {
-                Text(airfield.humanSummary)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(white: 0.46))
-                    .fixedSize(horizontal: false, vertical: true)
+            // ── Raw METAR (tappable) + expandable decode ─────────────────────
+            VStack(alignment: .leading, spacing: 0) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.22)) { isExpanded.toggle() }
+                }) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(airfield.rawMetar)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(Color(white: 0.38))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(Color(white: 0.32))
+                            .padding(.top, 1)
+                    }
+                }
+                .buttonStyle(.plain)
 
-                Text(airfield.rawMetar)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(Color(white: 0.38))
-                    .fixedSize(horizontal: false, vertical: true)
+                if isExpanded {
+                    MetarExpandedView(rawMetar: airfield.rawMetar)
+                        .padding(.top, 10)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
         .background(Color(white: 0.105))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+// MARK: - Full METAR parser (extension on MetarParser, lives here alongside the model types)
+
+extension MetarParser {
+
+    static func parseFull(rawMetar: String) -> ParsedMetar {
+        var r = ParsedMetar()
+
+        let cleaned = rawMetar
+            .replacingOccurrences(of: "^METAR ", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "^SPECI ", with: "", options: .regularExpression)
+
+        let tokens = cleaned.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        var i = 0
+
+        if i < tokens.count, tokens[i].range(of: "^[A-Z]{4}$", options: .regularExpression) != nil {
+            r.stationId = tokens[i]; i += 1
+        }
+
+        if i < tokens.count, tokens[i].range(of: "^\\d{6}Z$", options: .regularExpression) != nil {
+            let dt = tokens[i]; i += 1
+            let day  = String(dt.prefix(2))
+            let hour = String(dt.dropFirst(2).prefix(2))
+            let min  = String(dt.dropFirst(4).prefix(2))
+            r.observationTime = "Day \(day) · \(hour):\(min) UTC"
+        }
+
+        while i < tokens.count, ["AUTO", "COR", "NIL"].contains(tokens[i]) {
+            if tokens[i] == "AUTO" { r.isAuto = true }
+            if tokens[i] == "COR"  { r.isCorrected = true }
+            i += 1
+        }
+
+        if i < tokens.count,
+           tokens[i].range(of: "^(\\d{3}|VRB)\\d{2,3}(G\\d{2,3})?KT$", options: .regularExpression) != nil {
+            let wt = tokens[i]; i += 1
+            let m = performRegex(pattern: "^(\\d{3}|VRB)(\\d{2,3})(?:G(\\d{2,3}))?KT$", on: wt)
+            if let first = m.first, first.count > 2 {
+                let dirStr   = first[1]
+                let speedVal = Int(first[2]) ?? 0
+                let gustRaw  = first.count > 3 ? first[3] : ""
+                let direction: String
+                let speed: String
+                if speedVal == 0 && dirStr == "000" {
+                    direction = "Calm"; speed = ""
+                } else if dirStr == "VRB" {
+                    direction = "Variable"; speed = "\(speedVal) kt"
+                } else {
+                    direction = "\(Int(dirStr) ?? 0)°"; speed = "\(speedVal) kt"
+                }
+                let gust = gustRaw.isEmpty ? nil : "\(Int(gustRaw) ?? 0) kt"
+                r.wind = ParsedWind(direction: direction, speed: speed, gust: gust)
+            }
+        }
+
+        if i < tokens.count,
+           tokens[i].range(of: "^\\d{3}V\\d{3}$", options: .regularExpression) != nil {
+            let parts = tokens[i].components(separatedBy: "V"); i += 1
+            if parts.count == 2 { r.variableWindRange = "\(parts[0])° to \(parts[1])°" }
+        }
+
+        if i < tokens.count, tokens[i] == "CAVOK" {
+            r.isCavok = true
+            r.visibility = "CAVOK (≥10 km, no cloud below 5000 ft, no CB)"
+            i += 1
+        } else {
+            if i < tokens.count {
+                let vt = tokens[i]
+                if vt.range(of: "^\\d{4}$", options: .regularExpression) != nil {
+                    i += 1
+                    let m = Int(vt) ?? 0
+                    r.visibility = m >= 9999 ? "10 km or more"
+                                 : m >= 1000 ? String(format: "%.1f km", Double(m) / 1000)
+                                 : "\(m) m"
+                } else if vt.range(of: "^\\d+SM$", options: .regularExpression) != nil {
+                    r.visibility = vt.replacingOccurrences(of: "SM", with: " SM"); i += 1
+                }
+            }
+            if i < tokens.count,
+               tokens[i].range(of: "^\\d{4}[NSEW]{1,2}$", options: .regularExpression) != nil {
+                i += 1
+            }
+            while i < tokens.count,
+                  tokens[i].range(of: "^R\\d{2}[LRC]?/", options: .regularExpression) != nil {
+                r.rvr.append(parseRVR(tokens[i])); i += 1
+            }
+            while i < tokens.count, isWeatherToken(tokens[i]) {
+                r.weather.append(decodeWeather(tokens[i])); i += 1
+            }
+            while i < tokens.count, isCloudToken(tokens[i]) {
+                if let cloud = parseCloud(tokens[i]) { r.clouds.append(cloud) }
+                i += 1
+            }
+        }
+
+        if i < tokens.count,
+           tokens[i].range(of: "^M?\\d{2}/M?\\d{2}$", options: .regularExpression) != nil {
+            let parts = tokens[i].components(separatedBy: "/"); i += 1
+            if parts.count == 2 {
+                r.temperature = formatTemp(parts[0])
+                r.dewPoint    = formatTemp(parts[1])
+            }
+        }
+
+        if i < tokens.count,
+           tokens[i].range(of: "^[QA]\\d{4}$", options: .regularExpression) != nil {
+            let qnh = tokens[i]; i += 1
+            if qnh.hasPrefix("Q") {
+                r.qnh = "\(qnh.dropFirst()) hPa"
+            } else {
+                let inHg = (Double(String(qnh.dropFirst())) ?? 0) / 100.0
+                r.qnh = String(format: "%.2f inHg", inHg)
+            }
+        }
+
+        if i < tokens.count {
+            r.trend = decodeTrend(tokens[i...].joined(separator: " "))
+        }
+
+        return r
+    }
+
+    private static func isWeatherToken(_ t: String) -> Bool {
+        let pattern = "^(-|\\+|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+$"
+        return performRegex(pattern: pattern, on: t).first != nil
+    }
+
+    private static func isCloudToken(_ t: String) -> Bool {
+        if ["SKC", "CLR", "NSC", "NCD"].contains(t) { return true }
+        if t.range(of: "^(FEW|SCT|BKN|OVC)\\d{3}(CB|TCU)?$", options: .regularExpression) != nil { return true }
+        return t.range(of: "^VV\\d{3}$", options: .regularExpression) != nil
+    }
+
+    private static func parseRVR(_ t: String) -> String {
+        let m = performRegex(pattern: "^R(\\d{2}[LRC]?)/([MP]?)(\\d{4})([UDN]?)$", on: t)
+        guard let first = m.first, first.count > 3 else { return t }
+        let mod = first[2] == "M" ? "<" : first[2] == "P" ? ">" : ""
+        let val = Int(first[3]) ?? 0
+        let trend: String
+        switch first.count > 4 ? first[4] : "" {
+        case "U": trend = ", improving"
+        case "D": trend = ", deteriorating"
+        case "N": trend = ", no change"
+        default:  trend = ""
+        }
+        return "Rwy \(first[1]): \(mod)\(val) m\(trend)"
+    }
+
+    private static func decodeWeather(_ t: String) -> String {
+        let descriptors: [String: String] = [
+            "MI": "shallow", "PR": "partial", "BC": "patches of",
+            "DR": "drifting", "BL": "blowing", "SH": "shower",
+            "TS": "thunderstorm with", "FZ": "freezing"
+        ]
+        let phenomena: [String: String] = [
+            "DZ": "drizzle",     "RA": "rain",         "SN": "snow",
+            "SG": "snow grains", "IC": "ice crystals",  "PL": "ice pellets",
+            "GR": "hail",        "GS": "small hail",   "UP": "unknown precipitation",
+            "BR": "mist",        "FG": "fog",           "FU": "smoke",
+            "VA": "volcanic ash","DU": "dust",           "SA": "sand",
+            "HZ": "haze",        "PY": "spray",         "PO": "dust/sand whirls",
+            "SQ": "squalls",     "FC": "funnel cloud",  "SS": "sandstorm",
+            "DS": "duststorm"
+        ]
+        var rem = t
+        var parts: [String] = []
+        if rem.hasPrefix("-")       { parts.append("Light");        rem = String(rem.dropFirst()) }
+        else if rem.hasPrefix("+")  { parts.append("Heavy");        rem = String(rem.dropFirst()) }
+        else if rem.hasPrefix("VC") { parts.append("In vicinity:"); rem = String(rem.dropFirst(2)) }
+        for key in ["MI","PR","BC","DR","BL","SH","TS","FZ"] {
+            if rem.hasPrefix(key) {
+                if let d = descriptors[key] { parts.append(d) }
+                rem = String(rem.dropFirst(2)); break
+            }
+        }
+        var phen: [String] = []
+        while rem.count >= 2 {
+            let code = String(rem.prefix(2))
+            if let p = phenomena[code] { phen.append(p); rem = String(rem.dropFirst(2)) } else { break }
+        }
+        if !phen.isEmpty { parts.append(phen.joined(separator: " and ")) }
+        let result = parts.joined(separator: " ")
+        guard !result.isEmpty else { return t }
+        return result.prefix(1).uppercased() + result.dropFirst()
+    }
+
+    private static func parseCloud(_ t: String) -> ParsedCloud? {
+        let coverageMap: [String: String] = [
+            "FEW": "Few (1–2 oktas)",   "SCT": "Scattered (3–4 oktas)",
+            "BKN": "Broken (5–7 oktas)", "OVC": "Overcast (8 oktas)"
+        ]
+        if ["SKC", "CLR", "NSC", "NCD"].contains(t) {
+            return ParsedCloud(coverage: "Clear sky", height: "", cloudType: nil)
+        }
+        if t.hasPrefix("VV"), let h = Int(t.dropFirst(2)) {
+            return ParsedCloud(coverage: "Vertical visibility", height: "\(h * 100) ft AGL", cloudType: nil)
+        }
+        let m = performRegex(pattern: "^(FEW|SCT|BKN|OVC)(\\d{3})(CB|TCU)?$", on: t)
+        guard let first = m.first, first.count > 2 else { return nil }
+        let coverage  = coverageMap[first[1]] ?? first[1]
+        let heightFt  = (Int(first[2]) ?? 0) * 100
+        let typeMap   = ["CB": "Cumulonimbus", "TCU": "Towering Cumulus"]
+        let cloudType = (first.count > 3 && !first[3].isEmpty) ? typeMap[first[3]] : nil
+        return ParsedCloud(coverage: coverage, height: "\(heightFt) ft AGL", cloudType: cloudType)
+    }
+
+    private static func formatTemp(_ raw: String) -> String {
+        if raw.hasPrefix("M"), let v = Int(raw.dropFirst()) { return "-\(v)°C" }
+        if let v = Int(raw) { return "\(v)°C" }
+        return raw
+    }
+
+    private static func decodeTrend(_ raw: String) -> String {
+        if raw.hasPrefix("NOSIG") { return "No significant change" }
+        if raw.hasPrefix("TEMPO") {
+            let rest = raw.dropFirst(5).trimmingCharacters(in: .whitespaces)
+            return rest.isEmpty ? "Temporary changes" : "Temporary: \(rest)"
+        }
+        if raw.hasPrefix("BECMG") {
+            let rest = raw.dropFirst(5).trimmingCharacters(in: .whitespaces)
+            return rest.isEmpty ? "Becoming" : "Becoming: \(rest)"
+        }
+        return raw
+    }
+}
+
+// MARK: - METAR Expanded Decode
+
+private struct MetarRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(Color(white: 0.35))
+                .kerning(1.1)
+                .frame(width: 76, alignment: .leading)
+            Text(value)
+                .font(.system(size: 12))
+                .foregroundColor(Color(white: 0.60))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+    }
+}
+
+private struct MetarExpandedView: View {
+    let rawMetar: String
+    private var p: ParsedMetar { MetarParser.parseFull(rawMetar: rawMetar) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Rectangle()
+                .fill(Color(white: 0.17))
+                .frame(height: 1)
+                .padding(.bottom, 2)
+
+            if !p.observationTime.isEmpty {
+                MetarRow(label: "OBSERVED", value: p.observationTime)
+            }
+            if p.isAuto      { MetarRow(label: "TYPE", value: "Automated observation") }
+            if p.isCorrected { MetarRow(label: "TYPE", value: "Corrected report") }
+
+            if let wind = p.wind {
+                MetarRow(label: "WIND", value: windString(wind))
+            }
+
+            if !p.visibility.isEmpty { MetarRow(label: "VISIBILITY", value: p.visibility) }
+
+            ForEach(p.rvr, id: \.self)     { MetarRow(label: "RVR",     value: $0) }
+            ForEach(p.weather, id: \.self) { MetarRow(label: "WEATHER", value: $0) }
+
+            if p.isCavok {
+                MetarRow(label: "CLOUDS", value: "No cloud below 5000 ft, no CB")
+            } else {
+                ForEach(p.clouds) { cloud in
+                    MetarRow(label: "CLOUDS", value: cloudString(cloud))
+                }
+            }
+
+            if !p.temperature.isEmpty { MetarRow(label: "TEMP",      value: p.temperature) }
+            if !p.dewPoint.isEmpty    { MetarRow(label: "DEW POINT", value: p.dewPoint) }
+            if !p.qnh.isEmpty         { MetarRow(label: "QNH",       value: p.qnh) }
+            if !p.trend.isEmpty       { MetarRow(label: "TREND",     value: p.trend) }
+        }
+    }
+
+    private func windString(_ wind: ParsedWind) -> String {
+        if wind.direction == "Calm" { return "Calm" }
+        var s = "\(wind.direction) at \(wind.speed)"
+        if let g = wind.gust { s += ", gusting \(g)" }
+        if let vr = p.variableWindRange { s += " (variable \(vr))" }
+        return s
+    }
+
+    private func cloudString(_ cloud: ParsedCloud) -> String {
+        if cloud.coverage == "Clear sky" { return "Clear sky" }
+        if let ct = cloud.cloudType { return "\(cloud.coverage) at \(cloud.height) (\(ct))" }
+        return "\(cloud.coverage) at \(cloud.height)"
     }
 }
 

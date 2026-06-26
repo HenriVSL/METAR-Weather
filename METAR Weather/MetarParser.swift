@@ -15,8 +15,6 @@ struct MetarParser {
         let vis = extractVisibility(from: rawMetar) ?? 9999
         let condition = determineFlightCondition(visibilityMeters: vis, rawMetar: rawMetar)
 
-        let summary = "Wind \(wind.dir)° at \(wind.speed)kt. Visibility \(vis >= 9999 ? "9999m or more" : "\(vis)m"). Temperature \(temp)°C."
-
         return AirfieldData(
             icao: icao,
             locationName: locationName,
@@ -25,7 +23,6 @@ struct MetarParser {
             windDirectionDeg: wind.dir,
             windSpeedKt: wind.speed,
             visibilityMeters: vis,
-            humanSummary: summary,
             rawMetar: rawMetar,
             frequencies: frequencies
         )
@@ -78,11 +75,11 @@ struct MetarParser {
     }
     
     // Helper to safely execute NSRegularExpression
-    private static func performRegex(pattern: String, on text: String) -> [[String]] {
+    static func performRegex(pattern: String, on text: String) -> [[String]] {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return [] }
         let nsString = text as NSString
         let results = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsString.length))
-        
+
         return results.map { match in
             (0..<match.numberOfRanges).map {
                 let rangeBounds = match.range(at: $0)
@@ -92,3 +89,4 @@ struct MetarParser {
         }
     }
 }
+
