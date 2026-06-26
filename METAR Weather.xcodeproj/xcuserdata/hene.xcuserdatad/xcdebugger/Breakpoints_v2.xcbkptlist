@@ -16,8 +16,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "26"
             endingLineNumber = "26"
-            landmarkName = "parse(rawMetar:icao:locationName:frequencies:)"
-            landmarkType = "7">
+            landmarkName = "ParsedMetar"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy

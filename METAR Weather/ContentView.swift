@@ -53,35 +53,23 @@ struct AirportFrequency: Identifiable {
     let freq: String
 }
 
-struct ParsedMetar {
-    var stationId:         String        = ""
-    var observationTime:   String        = ""
-    var isAuto:            Bool          = false
-    var isCorrected:       Bool          = false
-    var wind:              ParsedWind?   = nil
-    var variableWindRange: String?       = nil
-    var isCavok:           Bool          = false
-    var visibility:        String        = ""
-    var rvr:               [String]      = []
-    var weather:           [String]      = []
-    var clouds:            [ParsedCloud] = []
-    var temperature:       String        = ""
-    var dewPoint:          String        = ""
-    var qnh:               String        = ""
-    var trend:             String        = ""
+enum TemperatureUnit: String, CaseIterable {
+    case celsius    = "C"
+    case fahrenheit = "F"
+    var label: String { self == .celsius ? "°C" : "°F" }
 }
 
-struct ParsedWind {
-    let direction: String
-    let speed:     String
-    let gust:      String?
-}
-
-struct ParsedCloud: Identifiable {
-    let id        = UUID()
-    let coverage:  String
-    let height:    String
-    let cloudType: String?
+enum WindUnit: String, CaseIterable {
+    case knots = "kt"
+    case ms    = "ms"
+    case mph   = "mph"
+    var label: String {
+        switch self {
+        case .knots: return "kt"
+        case .ms:    return "m/s"
+        case .mph:   return "mph"
+        }
+    }
 }
 
 struct AirfieldData: Identifiable {
@@ -104,46 +92,6 @@ struct AirfieldData: Identifiable {
         if rawMetar.contains("CAVOK") { return "CAVOK" }
         return visibilityMeters >= 9999 ? "9999m" : "\(visibilityMeters)m"
     }
-}
-
-// MARK: - Static Sample Data
-
-extension AirfieldData {
-    static let samples: [AirfieldData] = [
-        AirfieldData(
-            icao: "EFHA",
-            locationName: "Halli Airport",
-            flightCondition: .ifr,
-            temperatureC: -3,
-            windDirectionDeg: 220,
-            windSpeedKt: 18,
-            visibilityMeters: 1200,
-            rawMetar: "EFHA 141420Z 22018KT 1200 BR OVC004 M03/M04 Q1012",
-            frequencies: [AirportFrequency(type: "TWR", freq: "119.7"), AirportFrequency(type: "ATIS", freq: "135.5")]
-        ),
-        AirfieldData(
-            icao: "EFTP",
-            locationName: "Tampere/Pirkkala Airport",
-            flightCondition: .mvfr,
-            temperatureC: 1,
-            windDirectionDeg: 180,
-            windSpeedKt: 9,
-            visibilityMeters: 6000,
-            rawMetar: "EFTP 141420Z 18009KT 6000 BKN012 01/M01 Q1014",
-            frequencies: [AirportFrequency(type: "ATIS", freq: "133.55"), AirportFrequency(type: "TWR", freq: "118.7")]
-        ),
-        AirfieldData(
-            icao: "EFJY",
-            locationName: "Jyväskylä Airport",
-            flightCondition: .vfr,
-            temperatureC: -1,
-            windDirectionDeg: 270,
-            windSpeedKt: 5,
-            visibilityMeters: 9999,
-            rawMetar: "EFJY 141420Z 27005KT 9999 FEW035 M01/M05 Q1015",
-            frequencies: []
-        )
-    ]
 }
 
 // MARK: - Reusable Subviews
@@ -244,14 +192,33 @@ private struct ColumnDivider: View {
 /// Three-column grid: TEMP | WIND | VIS.
 struct MetricGridView: View {
     let airfield: AirfieldData
+    @AppStorage("temperatureUnit") private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
+    @AppStorage("windUnit")        private var windUnitRaw: String = WindUnit.knots.rawValue
+
+    private var tempUnit: TemperatureUnit { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius }
+    private var windUnit: WindUnit        { WindUnit(rawValue: windUnitRaw) ?? .knots }
+
+    private var convertedTemp: String {
+        guard tempUnit == .fahrenheit else { return airfield.displayTemp }
+        return "\(Int(Double(airfield.temperatureC) * 9 / 5 + 32))"
+    }
+
+    private var convertedWindSpeed: String {
+        let kt = airfield.windSpeedKt
+        switch windUnit {
+        case .knots: return String(format: "%02dkt", kt)
+        case .ms:    return String(format: "%.1fm/s", Double(kt) * 0.514444)
+        case .mph:   return String(format: "%.0fmph", Double(kt) * 1.15078)
+        }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
             MetricColumn(
                 iconName:      "thermometer.medium",
                 label:         "TEMP",
-                primaryValue:  airfield.displayTemp,
-                primarySuffix: "°"
+                primaryValue:  convertedTemp,
+                primarySuffix: tempUnit.label
             )
 
             ColumnDivider()
@@ -260,7 +227,7 @@ struct MetricGridView: View {
                 iconName:     "wind",
                 label:        "WIND",
                 primaryValue: airfield.displayWindDir,
-                secondValue:  airfield.displayWindSpeed,
+                secondValue:  convertedWindSpeed,
                 valueColor:   airfield.flightCondition.windMetricColor
             )
 
@@ -288,8 +255,8 @@ struct AirfieldCardView: View {
         VStack(alignment: .leading, spacing: 0) {
 
             // ── Header ──────────────────────────────────────────────────────
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .top) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(airfield.icao)
                             .font(.system(size: 22, weight: .bold))
@@ -299,25 +266,25 @@ struct AirfieldCardView: View {
                             .foregroundColor(Color(white: 0.42))
                     }
 
-                    Spacer()
+                    Text(airfield.locationName)
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.48))
 
-                    let validFreqs = airfield.frequencies.filter { $0.freq.contains(where: \.isNumber) }
-                    if !validFreqs.isEmpty {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            ForEach(validFreqs) { f in
-                                Text("\(f.type) \(f.freq)")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(Color(white: 0.48))
-                            }
+                    FlightConditionBadge(condition: airfield.flightCondition)
+                }
+
+                Spacer()
+
+                let validFreqs = airfield.frequencies.filter { $0.freq.contains(where: \.isNumber) }
+                if !validFreqs.isEmpty {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        ForEach(validFreqs) { f in
+                            Text("\(f.type) \(f.freq)")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(white: 0.48))
                         }
                     }
                 }
-
-                Text(airfield.locationName)
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(white: 0.48))
-
-                FlightConditionBadge(condition: airfield.flightCondition)
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -362,233 +329,9 @@ struct AirfieldCardView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
+        .frame(maxWidth: .infinity)
         .background(Color(white: 0.105))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
-// MARK: - Full METAR parser (extension on MetarParser, lives here alongside the model types)
-
-extension MetarParser {
-
-    static func parseFull(rawMetar: String) -> ParsedMetar {
-        var r = ParsedMetar()
-
-        let cleaned = rawMetar
-            .replacingOccurrences(of: "^METAR ", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "^SPECI ", with: "", options: .regularExpression)
-
-        let tokens = cleaned.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        var i = 0
-
-        if i < tokens.count, tokens[i].range(of: "^[A-Z]{4}$", options: .regularExpression) != nil {
-            r.stationId = tokens[i]; i += 1
-        }
-
-        if i < tokens.count, tokens[i].range(of: "^\\d{6}Z$", options: .regularExpression) != nil {
-            let dt = tokens[i]; i += 1
-            let day  = String(dt.prefix(2))
-            let hour = String(dt.dropFirst(2).prefix(2))
-            let min  = String(dt.dropFirst(4).prefix(2))
-            r.observationTime = "Day \(day) · \(hour):\(min) UTC"
-        }
-
-        while i < tokens.count, ["AUTO", "COR", "NIL"].contains(tokens[i]) {
-            if tokens[i] == "AUTO" { r.isAuto = true }
-            if tokens[i] == "COR"  { r.isCorrected = true }
-            i += 1
-        }
-
-        if i < tokens.count,
-           tokens[i].range(of: "^(\\d{3}|VRB)\\d{2,3}(G\\d{2,3})?KT$", options: .regularExpression) != nil {
-            let wt = tokens[i]; i += 1
-            let m = performRegex(pattern: "^(\\d{3}|VRB)(\\d{2,3})(?:G(\\d{2,3}))?KT$", on: wt)
-            if let first = m.first, first.count > 2 {
-                let dirStr   = first[1]
-                let speedVal = Int(first[2]) ?? 0
-                let gustRaw  = first.count > 3 ? first[3] : ""
-                let direction: String
-                let speed: String
-                if speedVal == 0 && dirStr == "000" {
-                    direction = "Calm"; speed = ""
-                } else if dirStr == "VRB" {
-                    direction = "Variable"; speed = "\(speedVal) kt"
-                } else {
-                    direction = "\(Int(dirStr) ?? 0)°"; speed = "\(speedVal) kt"
-                }
-                let gust = gustRaw.isEmpty ? nil : "\(Int(gustRaw) ?? 0) kt"
-                r.wind = ParsedWind(direction: direction, speed: speed, gust: gust)
-            }
-        }
-
-        if i < tokens.count,
-           tokens[i].range(of: "^\\d{3}V\\d{3}$", options: .regularExpression) != nil {
-            let parts = tokens[i].components(separatedBy: "V"); i += 1
-            if parts.count == 2 { r.variableWindRange = "\(parts[0])° to \(parts[1])°" }
-        }
-
-        if i < tokens.count, tokens[i] == "CAVOK" {
-            r.isCavok = true
-            r.visibility = "CAVOK (≥10 km, no cloud below 5000 ft, no CB)"
-            i += 1
-        } else {
-            if i < tokens.count {
-                let vt = tokens[i]
-                if vt.range(of: "^\\d{4}$", options: .regularExpression) != nil {
-                    i += 1
-                    let m = Int(vt) ?? 0
-                    r.visibility = m >= 9999 ? "10 km or more"
-                                 : m >= 1000 ? String(format: "%.1f km", Double(m) / 1000)
-                                 : "\(m) m"
-                } else if vt.range(of: "^\\d+SM$", options: .regularExpression) != nil {
-                    r.visibility = vt.replacingOccurrences(of: "SM", with: " SM"); i += 1
-                }
-            }
-            if i < tokens.count,
-               tokens[i].range(of: "^\\d{4}[NSEW]{1,2}$", options: .regularExpression) != nil {
-                i += 1
-            }
-            while i < tokens.count,
-                  tokens[i].range(of: "^R\\d{2}[LRC]?/", options: .regularExpression) != nil {
-                r.rvr.append(parseRVR(tokens[i])); i += 1
-            }
-            while i < tokens.count, isWeatherToken(tokens[i]) {
-                r.weather.append(decodeWeather(tokens[i])); i += 1
-            }
-            while i < tokens.count, isCloudToken(tokens[i]) {
-                if let cloud = parseCloud(tokens[i]) { r.clouds.append(cloud) }
-                i += 1
-            }
-        }
-
-        if i < tokens.count,
-           tokens[i].range(of: "^M?\\d{2}/M?\\d{2}$", options: .regularExpression) != nil {
-            let parts = tokens[i].components(separatedBy: "/"); i += 1
-            if parts.count == 2 {
-                r.temperature = formatTemp(parts[0])
-                r.dewPoint    = formatTemp(parts[1])
-            }
-        }
-
-        if i < tokens.count,
-           tokens[i].range(of: "^[QA]\\d{4}$", options: .regularExpression) != nil {
-            let qnh = tokens[i]; i += 1
-            if qnh.hasPrefix("Q") {
-                r.qnh = "\(qnh.dropFirst()) hPa"
-            } else {
-                let inHg = (Double(String(qnh.dropFirst())) ?? 0) / 100.0
-                r.qnh = String(format: "%.2f inHg", inHg)
-            }
-        }
-
-        if i < tokens.count {
-            r.trend = decodeTrend(tokens[i...].joined(separator: " "))
-        }
-
-        return r
-    }
-
-    private static func isWeatherToken(_ t: String) -> Bool {
-        let pattern = "^(-|\\+|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+$"
-        return performRegex(pattern: pattern, on: t).first != nil
-    }
-
-    private static func isCloudToken(_ t: String) -> Bool {
-        if ["SKC", "CLR", "NSC", "NCD"].contains(t) { return true }
-        if t.range(of: "^(FEW|SCT|BKN|OVC)\\d{3}(CB|TCU)?$", options: .regularExpression) != nil { return true }
-        return t.range(of: "^VV\\d{3}$", options: .regularExpression) != nil
-    }
-
-    private static func parseRVR(_ t: String) -> String {
-        let m = performRegex(pattern: "^R(\\d{2}[LRC]?)/([MP]?)(\\d{4})([UDN]?)$", on: t)
-        guard let first = m.first, first.count > 3 else { return t }
-        let mod = first[2] == "M" ? "<" : first[2] == "P" ? ">" : ""
-        let val = Int(first[3]) ?? 0
-        let trend: String
-        switch first.count > 4 ? first[4] : "" {
-        case "U": trend = ", improving"
-        case "D": trend = ", deteriorating"
-        case "N": trend = ", no change"
-        default:  trend = ""
-        }
-        return "Rwy \(first[1]): \(mod)\(val) m\(trend)"
-    }
-
-    private static func decodeWeather(_ t: String) -> String {
-        let descriptors: [String: String] = [
-            "MI": "shallow", "PR": "partial", "BC": "patches of",
-            "DR": "drifting", "BL": "blowing", "SH": "shower",
-            "TS": "thunderstorm with", "FZ": "freezing"
-        ]
-        let phenomena: [String: String] = [
-            "DZ": "drizzle",     "RA": "rain",         "SN": "snow",
-            "SG": "snow grains", "IC": "ice crystals",  "PL": "ice pellets",
-            "GR": "hail",        "GS": "small hail",   "UP": "unknown precipitation",
-            "BR": "mist",        "FG": "fog",           "FU": "smoke",
-            "VA": "volcanic ash","DU": "dust",           "SA": "sand",
-            "HZ": "haze",        "PY": "spray",         "PO": "dust/sand whirls",
-            "SQ": "squalls",     "FC": "funnel cloud",  "SS": "sandstorm",
-            "DS": "duststorm"
-        ]
-        var rem = t
-        var parts: [String] = []
-        if rem.hasPrefix("-")       { parts.append("Light");        rem = String(rem.dropFirst()) }
-        else if rem.hasPrefix("+")  { parts.append("Heavy");        rem = String(rem.dropFirst()) }
-        else if rem.hasPrefix("VC") { parts.append("In vicinity:"); rem = String(rem.dropFirst(2)) }
-        for key in ["MI","PR","BC","DR","BL","SH","TS","FZ"] {
-            if rem.hasPrefix(key) {
-                if let d = descriptors[key] { parts.append(d) }
-                rem = String(rem.dropFirst(2)); break
-            }
-        }
-        var phen: [String] = []
-        while rem.count >= 2 {
-            let code = String(rem.prefix(2))
-            if let p = phenomena[code] { phen.append(p); rem = String(rem.dropFirst(2)) } else { break }
-        }
-        if !phen.isEmpty { parts.append(phen.joined(separator: " and ")) }
-        let result = parts.joined(separator: " ")
-        guard !result.isEmpty else { return t }
-        return result.prefix(1).uppercased() + result.dropFirst()
-    }
-
-    private static func parseCloud(_ t: String) -> ParsedCloud? {
-        let coverageMap: [String: String] = [
-            "FEW": "Few (1–2 oktas)",   "SCT": "Scattered (3–4 oktas)",
-            "BKN": "Broken (5–7 oktas)", "OVC": "Overcast (8 oktas)"
-        ]
-        if ["SKC", "CLR", "NSC", "NCD"].contains(t) {
-            return ParsedCloud(coverage: "Clear sky", height: "", cloudType: nil)
-        }
-        if t.hasPrefix("VV"), let h = Int(t.dropFirst(2)) {
-            return ParsedCloud(coverage: "Vertical visibility", height: "\(h * 100) ft AGL", cloudType: nil)
-        }
-        let m = performRegex(pattern: "^(FEW|SCT|BKN|OVC)(\\d{3})(CB|TCU)?$", on: t)
-        guard let first = m.first, first.count > 2 else { return nil }
-        let coverage  = coverageMap[first[1]] ?? first[1]
-        let heightFt  = (Int(first[2]) ?? 0) * 100
-        let typeMap   = ["CB": "Cumulonimbus", "TCU": "Towering Cumulus"]
-        let cloudType = (first.count > 3 && !first[3].isEmpty) ? typeMap[first[3]] : nil
-        return ParsedCloud(coverage: coverage, height: "\(heightFt) ft AGL", cloudType: cloudType)
-    }
-
-    private static func formatTemp(_ raw: String) -> String {
-        if raw.hasPrefix("M"), let v = Int(raw.dropFirst()) { return "-\(v)°C" }
-        if let v = Int(raw) { return "\(v)°C" }
-        return raw
-    }
-
-    private static func decodeTrend(_ raw: String) -> String {
-        if raw.hasPrefix("NOSIG") { return "No significant change" }
-        if raw.hasPrefix("TEMPO") {
-            let rest = raw.dropFirst(5).trimmingCharacters(in: .whitespaces)
-            return rest.isEmpty ? "Temporary changes" : "Temporary: \(rest)"
-        }
-        if raw.hasPrefix("BECMG") {
-            let rest = raw.dropFirst(5).trimmingCharacters(in: .whitespaces)
-            return rest.isEmpty ? "Becoming" : "Becoming: \(rest)"
-        }
-        return raw
     }
 }
 
@@ -744,34 +487,182 @@ struct AirfieldsView: View {
     @ObservedObject var viewModel: WeatherViewModel
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 0) {
+                TopBarView(viewModel: viewModel)
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    // Pass viewModel to TopBar
-                    TopBarView(viewModel: viewModel)
-
+                if viewModel.targetIcaos.isEmpty {
+                    VStack(spacing: 14) {
+                        Image(systemName: "mappin.slash")
+                            .font(.system(size: 40, weight: .light))
+                            .foregroundColor(Color(white: 0.28))
+                        Text("No airports added")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(Color(white: 0.35))
+                        Text("Open Settings and enter an ICAO\ncode to start tracking weather.")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(white: 0.28))
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 100)
+                } else {
                     VStack(spacing: 12) {
-                        // Loop through live data
-                        ForEach(viewModel.airfields) { airfield in
-                            AirfieldCardView(airfield: airfield)
+                        if viewModel.airfields.isEmpty && viewModel.isRefreshing {
+                            ForEach(viewModel.targetIcaos, id: \.self) { icao in
+                                PlaceholderCardView(icao: icao)
+                            }
+                        } else {
+                            ForEach(viewModel.airfields) { airfield in
+                                AirfieldCardView(airfield: airfield)
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 28)
                 }
             }
+            .frame(maxWidth: .infinity)
         }
+        .background(Color.black.ignoresSafeArea())
+    }
+}
+
+// MARK: - Placeholder Card (first-load skeleton)
+
+private struct PlaceholderCardView: View {
+    let icao: String
+    private let dimGrey = Color(white: 0.25)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    HStack(spacing: 6) {
+                        Text(icao)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                        Image(systemName: "mappin.circle")
+                            .font(.system(size: 15))
+                            .foregroundColor(Color(white: 0.42))
+                    }
+                    Spacer()
+                }
+
+                Text("——")
+                    .font(.system(size: 13))
+                    .foregroundColor(dimGrey)
+
+                // Placeholder badge
+                HStack(spacing: 5) {
+                    Image(systemName: "circle.dotted")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("—")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundColor(dimGrey)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color(white: 0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+
+            // Metric grid (dashes)
+            HStack(spacing: 0) {
+                MetricColumn(iconName: "thermometer.medium", label: "TEMP",
+                             primaryValue: "--", valueColor: dimGrey)
+                ColumnDivider()
+                MetricColumn(iconName: "wind", label: "WIND",
+                             primaryValue: "—°", secondValue: "--", valueColor: dimGrey)
+                ColumnDivider()
+                MetricColumn(iconName: "eye", label: "VIS",
+                             primaryValue: "--", valueColor: dimGrey)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 6)
+
+            // Separator
+            Rectangle()
+                .fill(Color(white: 0.17))
+                .frame(height: 1)
+                .padding(.horizontal, 16)
+
+            // Raw METAR placeholder
+            Text("—— —— —— ——")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(dimGrey)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color(white: 0.105))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
 // MARK: - Settings View
 
+private struct UnitPicker<U: RawRepresentable & CaseIterable & Hashable>: View where U.RawValue == String {
+    let label: String
+    let options: [U]
+    @Binding var selection: U
+    private func displayLabel(_ u: U) -> String {
+        (u as? TemperatureUnit)?.label ?? (u as? WindUnit)?.label ?? u.rawValue
+    }
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(white: 0.65))
+            Spacer()
+            HStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    Button(action: { withAnimation(.easeInOut(duration: 0.15)) { selection = option } }) {
+                        Text(displayLabel(option))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(selection == option ? .black : Color(white: 0.50))
+                            .frame(minWidth: 44)
+                            .padding(.vertical, 7)
+                            .padding(.horizontal, 10)
+                            .background(
+                                selection == option
+                                    ? RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white)
+                                    : RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(3)
+            .background(Color(white: 0.16))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var viewModel: WeatherViewModel
     @State private var inputIcao: String = ""
+    @State private var unitsExpanded = false
+    @State private var draggingIcao: String? = nil
+    @State private var dragStartIndex: Int = 0
     @FocusState private var fieldFocused: Bool
+    @AppStorage("temperatureUnit") private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
+    @AppStorage("windUnit")        private var windUnitRaw: String = WindUnit.knots.rawValue
+    private var tempUnit: TemperatureUnit {
+        get { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius }
+        set { tempUnitRaw = newValue.rawValue }
+    }
+    private var windUnit: WindUnit {
+        get { WindUnit(rawValue: windUnitRaw) ?? .knots }
+        set { windUnitRaw = newValue.rawValue }
+    }
 
     var body: some View {
         ZStack {
@@ -840,6 +731,54 @@ struct SettingsView: View {
                     .background(Color(white: 0.085))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
+                    // ── Units ───────────────────────────────────────────────
+                    VStack(spacing: 0) {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.22)) { unitsExpanded.toggle() }
+                        }) {
+                            HStack {
+                                Text("Units")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Image(systemName: unitsExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(Color(white: 0.40))
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        if unitsExpanded {
+                            VStack(spacing: 14) {
+                                Rectangle()
+                                    .fill(Color(white: 0.17))
+                                    .frame(height: 1)
+                                    .padding(.top, 14)
+
+                                UnitPicker(
+                                    label: "Temperature",
+                                    options: TemperatureUnit.allCases,
+                                    selection: Binding(
+                                        get: { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius },
+                                        set: { tempUnitRaw = $0.rawValue }
+                                    )
+                                )
+                                UnitPicker(
+                                    label: "Wind speed",
+                                    options: WindUnit.allCases,
+                                    selection: Binding(
+                                        get: { WindUnit(rawValue: windUnitRaw) ?? .knots },
+                                        set: { windUnitRaw = $0.rawValue }
+                                    )
+                                )
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .padding(18)
+                    .background(Color(white: 0.085))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
                     // ── Selected airports ────────────────────────────────────
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(alignment: .top) {
@@ -847,7 +786,7 @@ struct SettingsView: View {
                                 Text("Selected airports")
                                     .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(.white)
-                                Text("Tap delete to remove from your briefing list.")
+                                Text("Tap trash to remove · drag to reorder.")
                                     .font(.system(size: 13))
                                     .foregroundColor(Color(white: 0.48))
                             }
@@ -890,10 +829,42 @@ struct SettingsView: View {
                                             .font(.system(size: 16))
                                             .foregroundColor(Color(red: 0.85, green: 0.22, blue: 0.22))
                                     }
+                                    Image(systemName: "line.3.horizontal")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(Color(white: 0.38))
+                                        .frame(width: 36, height: 44)
+                                        .contentShape(Rectangle())
+                                        .highPriorityGesture(
+                                            DragGesture(minimumDistance: 2)
+                                                .onChanged { value in
+                                                    if draggingIcao != icao {
+                                                        draggingIcao = icao
+                                                        dragStartIndex = viewModel.targetIcaos.firstIndex(of: icao) ?? 0
+                                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                                    }
+                                                    let targetIdx = max(0, min(
+                                                        viewModel.targetIcaos.count - 1,
+                                                        dragStartIndex + Int((value.translation.height / 68).rounded())
+                                                    ))
+                                                    guard let currentIdx = viewModel.targetIcaos.firstIndex(of: icao),
+                                                          targetIdx != currentIdx else { return }
+                                                    withAnimation(.interactiveSpring()) {
+                                                        viewModel.targetIcaos.move(
+                                                            fromOffsets: IndexSet(integer: currentIdx),
+                                                            toOffset: targetIdx > currentIdx ? targetIdx + 1 : targetIdx)
+                                                    }
+                                                }
+                                                .onEnded { _ in
+                                                    draggingIcao = nil
+                                                    dragStartIndex = 0
+                                                }
+                                        )
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
-                                .background(Color(white: 0.13))
+                                .background(draggingIcao == icao
+                                    ? Color(white: 0.20)
+                                    : Color(white: 0.13))
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                         }
@@ -926,6 +897,8 @@ struct ContentView: View {
 
     init() {
         configureTabBar()
+        UIScrollView.appearance().alwaysBounceHorizontal = false
+        UIScrollView.appearance().isDirectionalLockEnabled = true
     }
 
     var body: some View {
@@ -1009,8 +982,18 @@ struct AirfieldCard_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            AirfieldCardView(airfield: AirfieldData.samples[0])
-                .padding()
+            AirfieldCardView(airfield: AirfieldData(
+                icao: "EFHA",
+                locationName: "Halli Airport",
+                flightCondition: .ifr,
+                temperatureC: -3,
+                windDirectionDeg: 220,
+                windSpeedKt: 18,
+                visibilityMeters: 1200,
+                rawMetar: "EFHA 141420Z 22018KT 1200 BR OVC004 M03/M04 Q1012",
+                frequencies: []
+            ))
+            .padding()
         }
         .preferredColorScheme(.dark)
         .previewDisplayName("Single Card")

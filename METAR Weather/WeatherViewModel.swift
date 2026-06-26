@@ -19,6 +19,11 @@ class WeatherViewModel: ObservableObject {
     @Published var targetIcaos: [String] = [] {
         didSet {
             UserDefaults.standard.set(targetIcaos, forKey: "savedICAOs")
+            // Keep airfields in the same order as targetIcaos after any reorder/remove
+            let reordered = targetIcaos.compactMap { icao in airfields.first { $0.icao == icao } }
+            if reordered.map(\.icao) != airfields.map(\.icao) {
+                airfields = reordered
+            }
         }
     }
     
@@ -26,11 +31,7 @@ class WeatherViewModel: ObservableObject {
     
     init() {
         // 2. Load saved airfields on startup, or provide initial defaults
-        if let saved = UserDefaults.standard.stringArray(forKey: "savedICAOs"), !saved.isEmpty {
-            self.targetIcaos = saved
-        } else {
-            self.targetIcaos = ["EFHA", "EFTP"] // Default starter pack
-        }
+        self.targetIcaos = UserDefaults.standard.stringArray(forKey: "savedICAOs") ?? []
     }
     
     // 3. Update refresh logic to use the dynamic array
