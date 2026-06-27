@@ -5,6 +5,8 @@ visibility for the airports you care about, on the home screen and in a widget.
 
 <p align="center">
   <img src="UI_screenshot.png" alt="METAR Weather — airfield list showing EFHA, KJFK and EFTP cards" width="300">
+  &nbsp;&nbsp;
+  <img src="WIDGET_screenshot.png" alt="METAR Weather home-screen widgets — medium and small sizes" width="300">
 </p>
 
 ## Why?
