@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import WidgetKit
 
 @MainActor
 class WeatherViewModel: ObservableObject {
@@ -14,15 +15,26 @@ class WeatherViewModel: ObservableObject {
     @Published var lastUpdated: String = "Not updated yet"
     @Published var timeZ: String = "--:--Z"
     @Published var isRefreshing = false
-    
-    // 1. Dynamic list backed by UserDefaults
+
+    /// Auto-refresh cadence. METAR reports are typically issued every 30 min.
+    let autoRefreshInterval: TimeInterval = 30 * 60
+    private var lastRefreshDate: Date?
+
+    /// User's chosen airports, persisted to UserDefaults.
     @Published var targetIcaos: [String] = [] {
         didSet {
             UserDefaults.standard.set(targetIcaos, forKey: "savedICAOs")
-            // Keep airfields in the same order as targetIcaos after any reorder/remove
+            // Keep airfields in the same order as targetIcaos after any reorder/remove.
+            // Disable animation so the (off-screen) main view layout is already settled
+            // by the time the user switches back — otherwise the queued move animation
+            // plays out on appear, causing overlapping cards and gaps.
             let reordered = targetIcaos.compactMap { icao in airfields.first { $0.icao == icao } }
             if reordered.map(\.icao) != airfields.map(\.icao) {
-                airfields = reordered
+                var txn = Transaction()
+                txn.disablesAnimations = true
+                withTransaction(txn) {
+                    airfields = reordered
+                }
             }
         }
     }
@@ -30,11 +42,9 @@ class WeatherViewModel: ObservableObject {
     private let service = WeatherService()
     
     init() {
-        // 2. Load saved airfields on startup, or provide initial defaults
         self.targetIcaos = UserDefaults.standard.stringArray(forKey: "savedICAOs") ?? []
     }
-    
-    // 3. Update refresh logic to use the dynamic array
+
     func refreshWeather() async {
         isRefreshing = true
 
@@ -60,35 +70,64 @@ class WeatherViewModel: ObservableObject {
 
             self.airfields = updatedAirfields
             updateTimestamps()
+            writeWidgetSnapshot()
 
         } catch {
             print("Weather fetch failed: \(error)")
         }
 
+        lastRefreshDate = Date()
         isRefreshing = false
     }
-    
-    // 4. Function to add a new ICAO code
-    func addAirfield(icao: String) {
-        let cleanIcao = icao.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Prevent duplicates and ensure it's a 4-letter code
-        guard cleanIcao.count == 4, !targetIcaos.contains(cleanIcao) else { return }
-        
-        targetIcaos.append(cleanIcao)
-        
-        // Immediately fetch data for the new station
-        Task { await refreshWeather() }
+
+    /// Refresh only if the data is older than `autoRefreshInterval`.
+    /// Used by the periodic timer and when the app returns to the foreground,
+    /// so we don't re-fetch immediately after a manual refresh or launch.
+    func refreshIfStale() async {
+        if isRefreshing { return }   // a refresh (e.g. the launch .task) is already running
+        if let last = lastRefreshDate,
+           Date().timeIntervalSince(last) < autoRefreshInterval {
+            return
+        }
+        await refreshWeather()
+    }
+
+    /// Publish a snapshot of the current airfields to the shared App Group
+    /// container and ask WidgetKit to refresh the home-screen widget.
+    private func writeWidgetSnapshot() {
+        let snapshot = airfields.map { a in
+            WidgetAirfield(
+                icao: a.icao,
+                locationName: a.locationName,
+                condition: a.flightCondition.rawValue,
+                temperatureC: a.temperatureC,
+                windDirectionDeg: a.windDirectionDeg,
+                windSpeedKt: a.windSpeedKt,
+                visibilityText: a.displayVis,
+                updatedText: timeZ
+            )
+        }
+        WidgetStore.save(snapshot)
+        WidgetCenter.shared.reloadAllTimelines()
     }
     
-    // (Optional) Function to remove one if needed later
+    func addAirfield(icao: String) {
+        let cleanIcao = icao.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Prevent duplicates and ensure it's a 4-letter code.
+        guard cleanIcao.count == 4, !targetIcaos.contains(cleanIcao) else { return }
+
+        targetIcaos.append(cleanIcao)
+        Task { await refreshWeather() }   // fetch data for the new station
+    }
+
     func removeAirfield(icao: String) {
         targetIcaos.removeAll { $0 == icao }
         airfields.removeAll { $0.icao == icao }
+        writeWidgetSnapshot()
     }
-    
+
     private func updateTimestamps() {
-        // ... (Keep your existing timestamp logic here)
         let now = Date()
         let zuluFormatter = DateFormatter()
         zuluFormatter.dateFormat = "HH:mm'Z'"

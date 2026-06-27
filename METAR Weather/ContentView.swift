@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 // MARK: - Data Models
 
@@ -192,8 +193,8 @@ private struct ColumnDivider: View {
 /// Three-column grid: TEMP | WIND | VIS.
 struct MetricGridView: View {
     let airfield: AirfieldData
-    @AppStorage("temperatureUnit") private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
-    @AppStorage("windUnit")        private var windUnitRaw: String = WindUnit.knots.rawValue
+    @AppStorage("temperatureUnit", store: .appGroup) private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
+    @AppStorage("windUnit",        store: .appGroup) private var windUnitRaw: String = WindUnit.knots.rawValue
 
     private var tempUnit: TemperatureUnit { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius }
     private var windUnit: WindUnit        { WindUnit(rawValue: windUnitRaw) ?? .knots }
@@ -317,6 +318,7 @@ struct AirfieldCardView: View {
                             .foregroundColor(Color(white: 0.32))
                             .padding(.top, 1)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
@@ -653,8 +655,8 @@ struct SettingsView: View {
     @State private var draggingIcao: String? = nil
     @State private var dragStartIndex: Int = 0
     @FocusState private var fieldFocused: Bool
-    @AppStorage("temperatureUnit") private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
-    @AppStorage("windUnit")        private var windUnitRaw: String = WindUnit.knots.rawValue
+    @AppStorage("temperatureUnit", store: .appGroup) private var tempUnitRaw: String = TemperatureUnit.celsius.rawValue
+    @AppStorage("windUnit",        store: .appGroup) private var windUnitRaw: String = WindUnit.knots.rawValue
     private var tempUnit: TemperatureUnit {
         get { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius }
         set { tempUnitRaw = newValue.rawValue }
@@ -745,6 +747,7 @@ struct SettingsView: View {
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(Color(white: 0.40))
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
@@ -760,7 +763,7 @@ struct SettingsView: View {
                                     options: TemperatureUnit.allCases,
                                     selection: Binding(
                                         get: { TemperatureUnit(rawValue: tempUnitRaw) ?? .celsius },
-                                        set: { tempUnitRaw = $0.rawValue }
+                                        set: { tempUnitRaw = $0.rawValue; WidgetCenter.shared.reloadAllTimelines() }
                                     )
                                 )
                                 UnitPicker(
@@ -768,7 +771,7 @@ struct SettingsView: View {
                                     options: WindUnit.allCases,
                                     selection: Binding(
                                         get: { WindUnit(rawValue: windUnitRaw) ?? .knots },
-                                        set: { windUnitRaw = $0.rawValue }
+                                        set: { windUnitRaw = $0.rawValue; WidgetCenter.shared.reloadAllTimelines() }
                                     )
                                 )
                             }
@@ -835,7 +838,7 @@ struct SettingsView: View {
                                         .frame(width: 36, height: 44)
                                         .contentShape(Rectangle())
                                         .highPriorityGesture(
-                                            DragGesture(minimumDistance: 2)
+                                            DragGesture(minimumDistance: 2, coordinateSpace: .global)
                                                 .onChanged { value in
                                                     if draggingIcao != icao {
                                                         draggingIcao = icao
@@ -894,6 +897,11 @@ struct SettingsView: View {
 struct ContentView: View {
     @StateObject private var viewModel = WeatherViewModel()
     @State private var selectedTab: Int = 0
+    @Environment(\.scenePhase) private var scenePhase
+
+    // Fires once a minute; `refreshIfStale()` gates the actual fetch to the
+    // 30-minute cadence, so this stays cheap while keeping timing accurate.
+    private let autoRefreshTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     init() {
         configureTabBar()
@@ -909,7 +917,7 @@ struct ContentView: View {
                 }
                 .tag(0)
 
-            settingsPlaceholder
+            SettingsView(viewModel: viewModel)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }
@@ -919,26 +927,14 @@ struct ContentView: View {
         .task {
             await viewModel.refreshWeather()
         }
-    }
-
-    // MARK: Placeholder screens
-
-    private var alertsPlaceholder: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: "bell.slash")
-                    .font(.system(size: 38))
-                    .foregroundColor(Color(white: 0.28))
-                Text("No active alerts")
-                    .font(.system(size: 15))
-                    .foregroundColor(Color(white: 0.35))
+        .onReceive(autoRefreshTick) { _ in
+            Task { await viewModel.refreshIfStale() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await viewModel.refreshIfStale() }
             }
         }
-    }
-
-    private var settingsPlaceholder: some View {
-        SettingsView(viewModel: viewModel)
     }
 
     // MARK: Tab bar appearance

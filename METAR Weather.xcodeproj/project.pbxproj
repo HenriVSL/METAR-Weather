@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -17,6 +17,9 @@
 		B142F0952FEC727800861130 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0942FEC727800861130 /* WeatherService.swift */; };
 		B142F0972FEC72A300861130 /* WeatherViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0962FEC72A300861130 /* WeatherViewModel.swift */; };
 		B142F0992FEC79B900861130 /* MetarParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0982FEC79B900861130 /* MetarParser.swift */; };
+		B1A6EF112FEF0FD1002D2633 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1A6EF102FEF0FD1002D2633 /* WidgetKit.framework */; };
+		B1A6EF132FEF0FD1002D2633 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1A6EF122FEF0FD1002D2633 /* SwiftUI.framework */; };
+		B1A6EF202FEF0FD4002D2633 /* MetarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B1A6EF0E2FEF0FD1002D2633 /* MetarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,7 +37,28 @@
 			remoteGlobalIDString = B142F0662FEC648800861130;
 			remoteInfo = "METAR Weather";
 		};
+		B1A6EF1E2FEF0FD4002D2633 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B142F05F2FEC648800861130 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B1A6EF0D2FEF0FD1002D2633;
+			remoteInfo = MetarWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B1A6EF212FEF0FD4002D2633 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B1A6EF202FEF0FD4002D2633 /* MetarWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B142F0672FEC648800861130 /* METAR Weather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "METAR Weather.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -50,7 +74,33 @@
 		B142F0942FEC727800861130 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		B142F0962FEC72A300861130 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherViewModel.swift; sourceTree = "<group>"; };
 		B142F0982FEC79B900861130 /* MetarParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetarParser.swift; sourceTree = "<group>"; };
+		B1A6EF0E2FEF0FD1002D2633 /* MetarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MetarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1A6EF102FEF0FD1002D2633 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		B1A6EF122FEF0FD1002D2633 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		B1A6EF2A2FEF11E2002D2633 /* METAR Weather.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "METAR Weather.entitlements"; sourceTree = "<group>"; };
+		B1A6EF2B2FEF1243002D2633 /* MetarWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MetarWidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B1A6EF242FEF0FD4002D2633 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B1A6EF0D2FEF0FD1002D2633 /* MetarWidgetExtension */;
+		};
+		B1A6EF2F2FEF13AC002D2633 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WidgetShared.swift,
+			);
+			target = B142F0662FEC648800861130 /* METAR Weather */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		B1A6EF142FEF0FD1002D2633 /* MetarWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (B1A6EF2F2FEF13AC002D2633 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, B1A6EF242FEF0FD4002D2633 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MetarWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		B142F0642FEC648800861130 /* Frameworks */ = {
@@ -74,15 +124,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B1A6EF0B2FEF0FD1002D2633 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1A6EF132FEF0FD1002D2633 /* SwiftUI.framework in Frameworks */,
+				B1A6EF112FEF0FD1002D2633 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		B142F05E2FEC648800861130 = {
 			isa = PBXGroup;
 			children = (
+				B1A6EF2B2FEF1243002D2633 /* MetarWidgetExtension.entitlements */,
 				B142F0692FEC648800861130 /* METAR Weather */,
 				B142F07A2FEC648A00861130 /* METAR WeatherTests */,
 				B142F0842FEC648A00861130 /* METAR WeatherUITests */,
+				B1A6EF142FEF0FD1002D2633 /* MetarWidget */,
+				B1A6EF0F2FEF0FD1002D2633 /* Frameworks */,
 				B142F0682FEC648800861130 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -93,6 +155,7 @@
 				B142F0672FEC648800861130 /* METAR Weather.app */,
 				B142F0772FEC648A00861130 /* METAR WeatherTests.xctest */,
 				B142F0812FEC648A00861130 /* METAR WeatherUITests.xctest */,
+				B1A6EF0E2FEF0FD1002D2633 /* MetarWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -100,6 +163,7 @@
 		B142F0692FEC648800861130 /* METAR Weather */ = {
 			isa = PBXGroup;
 			children = (
+				B1A6EF2A2FEF11E2002D2633 /* METAR Weather.entitlements */,
 				B142F06A2FEC648800861130 /* METAR_WeatherApp.swift */,
 				B142F06C2FEC648800861130 /* ContentView.swift */,
 				B142F06E2FEC648A00861130 /* Assets.xcassets */,
@@ -136,6 +200,15 @@
 			path = "METAR WeatherUITests";
 			sourceTree = "<group>";
 		};
+		B1A6EF0F2FEF0FD1002D2633 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B1A6EF102FEF0FD1002D2633 /* WidgetKit.framework */,
+				B1A6EF122FEF0FD1002D2633 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -146,10 +219,12 @@
 				B142F0632FEC648800861130 /* Sources */,
 				B142F0642FEC648800861130 /* Frameworks */,
 				B142F0652FEC648800861130 /* Resources */,
+				B1A6EF212FEF0FD4002D2633 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B1A6EF1F2FEF0FD4002D2633 /* PBXTargetDependency */,
 			);
 			name = "METAR Weather";
 			productName = "METAR Weather";
@@ -192,6 +267,28 @@
 			productReference = B142F0812FEC648A00861130 /* METAR WeatherUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		B1A6EF0D2FEF0FD1002D2633 /* MetarWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1A6EF252FEF0FD4002D2633 /* Build configuration list for PBXNativeTarget "MetarWidgetExtension" */;
+			buildPhases = (
+				B1A6EF0A2FEF0FD1002D2633 /* Sources */,
+				B1A6EF0B2FEF0FD1002D2633 /* Frameworks */,
+				B1A6EF0C2FEF0FD1002D2633 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B1A6EF142FEF0FD1002D2633 /* MetarWidget */,
+			);
+			name = MetarWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MetarWidgetExtension;
+			productReference = B1A6EF0E2FEF0FD1002D2633 /* MetarWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -199,7 +296,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1420;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 1420;
 				TargetAttributes = {
 					B142F0662FEC648800861130 = {
@@ -212,6 +309,9 @@
 					B142F0802FEC648A00861130 = {
 						CreatedOnToolsVersion = 14.2;
 						TestTargetID = B142F0662FEC648800861130;
+					};
+					B1A6EF0D2FEF0FD1002D2633 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -231,6 +331,7 @@
 				B142F0662FEC648800861130 /* METAR Weather */,
 				B142F0762FEC648A00861130 /* METAR WeatherTests */,
 				B142F0802FEC648A00861130 /* METAR WeatherUITests */,
+				B1A6EF0D2FEF0FD1002D2633 /* MetarWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -253,6 +354,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B142F07F2FEC648A00861130 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1A6EF0C2FEF0FD1002D2633 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -291,6 +399,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B1A6EF0A2FEF0FD1002D2633 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -303,6 +418,11 @@
 			isa = PBXTargetDependency;
 			target = B142F0662FEC648800861130 /* METAR Weather */;
 			targetProxy = B142F0822FEC648A00861130 /* PBXContainerItemProxy */;
+		};
+		B1A6EF1F2FEF0FD4002D2633 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B1A6EF0D2FEF0FD1002D2633 /* MetarWidgetExtension */;
+			targetProxy = B1A6EF1E2FEF0FD4002D2633 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -357,7 +477,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -411,7 +531,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -426,6 +546,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "METAR Weather/METAR Weather.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"METAR Weather/Preview Content\"";
@@ -455,6 +576,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "METAR Weather/METAR Weather.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"METAR Weather/Preview Content\"";
@@ -488,7 +610,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 82VJYL8Y3V;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "henril.METAR-WeatherTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -508,7 +630,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 82VJYL8Y3V;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "henril.METAR-WeatherTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -555,6 +677,79 @@
 			};
 			name = Release;
 		};
+		B1A6EF222FEF0FD4002D2633 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MetarWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 82VJYL8Y3V;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetarWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MetarWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "henril.METAR-Weather.MetarWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B1A6EF232FEF0FD4002D2633 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = MetarWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 82VJYL8Y3V;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MetarWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MetarWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "henril.METAR-Weather.MetarWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -590,6 +785,15 @@
 			buildConfigurations = (
 				B142F0922FEC648B00861130 /* Debug */,
 				B142F0932FEC648B00861130 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1A6EF252FEF0FD4002D2633 /* Build configuration list for PBXNativeTarget "MetarWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1A6EF222FEF0FD4002D2633 /* Debug */,
+				B1A6EF232FEF0FD4002D2633 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
