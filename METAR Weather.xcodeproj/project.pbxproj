@@ -11,6 +11,7 @@
 		B142F06D2FEC648800861130 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F06C2FEC648800861130 /* ContentView.swift */; };
 		B142F06F2FEC648A00861130 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B142F06E2FEC648A00861130 /* Assets.xcassets */; };
 		B142F0722FEC648A00861130 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B142F0712FEC648A00861130 /* Preview Assets.xcassets */; };
+		B1C0FFEE000000000000B100 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B1C0FFEE000000000000A100 /* PrivacyInfo.xcprivacy */; };
 		B142F07C2FEC648A00861130 /* METAR_WeatherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F07B2FEC648A00861130 /* METAR_WeatherTests.swift */; };
 		B142F0862FEC648A00861130 /* METAR_WeatherUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0852FEC648A00861130 /* METAR_WeatherUITests.swift */; };
 		B142F0882FEC648B00861130 /* METAR_WeatherUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B142F0872FEC648B00861130 /* METAR_WeatherUITestsLaunchTests.swift */; };
@@ -66,6 +67,7 @@
 		B142F06C2FEC648800861130 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B142F06E2FEC648A00861130 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B142F0712FEC648A00861130 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		B1C0FFEE000000000000A100 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B142F0772FEC648A00861130 /* METAR WeatherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "METAR WeatherTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B142F07B2FEC648A00861130 /* METAR_WeatherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = METAR_WeatherTests.swift; sourceTree = "<group>"; };
 		B142F0812FEC648A00861130 /* METAR WeatherUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "METAR WeatherUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -171,6 +173,7 @@
 				B142F0942FEC727800861130 /* WeatherService.swift */,
 				B142F0962FEC72A300861130 /* WeatherViewModel.swift */,
 				B142F0982FEC79B900861130 /* MetarParser.swift */,
+				B1C0FFEE000000000000A100 /* PrivacyInfo.xcprivacy */,
 			);
 			path = "METAR Weather";
 			sourceTree = "<group>";
@@ -343,6 +346,7 @@
 			files = (
 				B142F0722FEC648A00861130 /* Preview Assets.xcassets in Resources */,
 				B142F06F2FEC648A00861130 /* Assets.xcassets in Resources */,
+				B1C0FFEE000000000000B100 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -557,7 +561,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -567,7 +571,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -587,7 +591,7 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -597,7 +601,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -616,7 +620,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/METAR Weather.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/METAR Weather";
 			};
 			name = Debug;
@@ -636,7 +640,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/METAR Weather.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/METAR Weather";
 			};
 			name = Release;
@@ -654,7 +658,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = "METAR Weather";
 			};
 			name = Debug;
@@ -672,7 +676,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = "METAR Weather";
 			};
 			name = Release;
@@ -710,7 +714,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -746,7 +750,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

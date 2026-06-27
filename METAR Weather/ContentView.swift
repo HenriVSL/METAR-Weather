@@ -875,6 +875,19 @@ struct SettingsView: View {
                     .padding(18)
                     .background(Color(white: 0.085))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    // ── About / attribution ──────────────────────────────────
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Weather and airport data provided by aviationweather.gov (NOAA / National Weather Service).")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(white: 0.45))
+                        Text("For situational awareness only — not an approved source for flight planning or operational decisions.")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(white: 0.38))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+                    .padding(.top, 4)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 20)
