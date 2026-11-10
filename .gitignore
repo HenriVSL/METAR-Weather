@@ -22,3 +22,8 @@ DerivedData/
 # CocoaPods / Carthage (not used here, ignored defensively)
 Pods/
 Carthage/Build/
+
+# Added for GitHub publishing
+*.xccheckout
+*.xcarchive
+.claude/

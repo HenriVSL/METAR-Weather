@@ -12,6 +12,14 @@ struct METAR_WeatherApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                #if os(macOS)
+                .frame(minWidth: 380, idealWidth: 440, minHeight: 560, idealHeight: 760)
+                .preferredColorScheme(.dark)
+                #endif
         }
+        #if os(macOS)
+        .defaultSize(width: 440, height: 760)
+        .windowResizability(.contentMinSize)
+        #endif
     }
 }

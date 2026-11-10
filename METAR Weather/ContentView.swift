@@ -696,7 +696,9 @@ struct SettingsView: View {
 
                         HStack(spacing: 10) {
                             TextField("EFHK", text: $inputIcao)
+                                #if os(iOS)
                                 .textInputAutocapitalization(.characters)
+                                #endif
                                 .autocorrectionDisabled()
                                 .font(.system(size: 17, weight: .medium, design: .monospaced))
                                 .foregroundColor(.white)
@@ -843,7 +845,9 @@ struct SettingsView: View {
                                                     if draggingIcao != icao {
                                                         draggingIcao = icao
                                                         dragStartIndex = viewModel.targetIcaos.firstIndex(of: icao) ?? 0
+                                                        #if os(iOS)
                                                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                                        #endif
                                                     }
                                                     let targetIdx = max(0, min(
                                                         viewModel.targetIcaos.count - 1,
@@ -917,9 +921,11 @@ struct ContentView: View {
     private let autoRefreshTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     init() {
+        #if os(iOS)
         configureTabBar()
         UIScrollView.appearance().alwaysBounceHorizontal = false
         UIScrollView.appearance().isDirectionalLockEnabled = true
+        #endif
     }
 
     var body: some View {
@@ -952,6 +958,7 @@ struct ContentView: View {
 
     // MARK: Tab bar appearance
 
+    #if os(iOS)
     private func configureTabBar() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -974,6 +981,7 @@ struct ContentView: View {
         UITabBar.appearance().standardAppearance   = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
+    #endif
 }
 
 // MARK: - Xcode Previews
